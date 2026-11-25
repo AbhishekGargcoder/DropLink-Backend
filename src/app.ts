@@ -13,7 +13,7 @@ const app = express();
 
 app.use(cors({
     origin: 
-        ["https://drop-link-frontend-m6a8ktk3r-imcoder22-1902s-projects.vercel.app",
+        ["https://drop-link-frontend-fvh3iuf3t-imcoder22-1902s-projects.vercel.app",
             "http://localhost:5173",
             "http://192.168.29.240:5173"              
         ]
