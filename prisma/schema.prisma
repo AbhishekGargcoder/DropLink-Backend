@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// 1. Device model
+// 2. PairedSession model
+// 3. SharedFile model
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+}
+
+enum DevicePlatform {
+  WINDOWS
+  ANDROID
+  IOS
+  MACOS
+  LINUX
+  UNKNOWN
+}
+enum SharedTextType{
+  TEXT
+  LINK
+}
+model Device {
+  id             String         @id @default(uuid())
+  deviceName     String
+  deviceType     DeviceType
+  platform       DevicePlatform @default(UNKNOWN)
+  credentialHash String         @unique
+  createdAt      DateTime       @default(now())
+  lastSeenAt     DateTime       @default(now())
+
+  hostedSessions PairingSession[] @relation("HostDevice")
+  joinedSessions PairingSession[] @relation("JoinedDevice")
+
+  connectionsAsA DevicePairing[] @relation("DeviceA")
+  connectionsAsB DevicePairing[] @relation("DeviceB")
+
+  sentTexts     SharedText[] @relation("SentTexts")
+  receivedTexts SharedText[] @relation("ReceivedTexts") 
+
+  sentFiles     SharedFile[] @relation("SentFiles")
+  receivedFiles SharedFile[] @relation("ReceivedFiles")
+  
+  recoverySessionsHosted DeviceRecoverySession[] @relation("RecoveryHost")
+  recoverySessionsTargeted DeviceRecoverySession[] @relation("RecoveryTarget")
+}
+
+model PairingSession {
+  id             String    @id @default(uuid())
+  tokenHash      String    @unique
+
+  hostDeviceId   String
+  hostDevice     Device    @relation("HostDevice", fields: [hostDeviceId], references: [id])
+
+  joinedDeviceId String?
+  joinedDevice   Device?   @relation("JoinedDevice", fields: [joinedDeviceId], references: [id])
+
+  expiresAt      DateTime
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model DevicePairing {
+  id          String   @id @default(uuid())
+  deviceAId   String // laptop id
+  deviceBId   String // phone id
+  deviceA     Device   @relation("DeviceA", fields: [deviceAId], references: [id])
+  deviceB     Device   @relation("DeviceB", fields: [deviceBId], references: [id])
+  createdAt   DateTime @default(now())
+  @@unique([deviceAId, deviceBId])
+}
+
+model SharedText {
+  id String @id @default(uuid())
+  content String @db.Text
+  type    SharedTextType
+  senderDeviceId String
+  receiverDeviceId String
+  senderDevice Device @relation("SentTexts",fields: [senderDeviceId],references: [id])
+  receiverDevice Device @relation("ReceivedTexts",fields: [receiverDeviceId],references: [id])
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+}
+
+enum SharedFileStatus {
+  AVAILABLE
+  DELETED
+  EXPIRED
+}
+
+model SharedFile {
+  id               String   @id @default(uuid())
+  fileName         String
+  storedName       String
+  mimeType         String
+  size             BigInt
+  storagePath      String
+
+  senderDeviceId   String
+  receiverDeviceId String
+
+  status           SharedFileStatus @default(AVAILABLE)
+  createdAt        DateTime @default(now())
+  readAt           DateTime?
+  expiresAt        DateTime?
+
+  senderDevice     Device @relation("SentFiles", fields: [senderDeviceId], references: [id])
+  receiverDevice   Device @relation("ReceivedFiles", fields: [receiverDeviceId], references: [id])
+
+  @@index([senderDeviceId])
+  @@index([receiverDeviceId])
+  @@index([createdAt])
+}
+
+model DeviceRecoverySession {
+  id             String   @id @default(uuid())
+  tokenHash      String   @unique
+
+  hostDeviceId   String // authenticated laptop id
+  targetDeviceId String // phone id
+
+  hostDevice     Device   @relation("RecoveryHost",fields: [hostDeviceId],references: [id])
+
+  targetDevice   Device   @relation("RecoveryTarget",fields: [targetDeviceId],references: [id])
+
+  expiresAt      DateTime
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([hostDeviceId])
+  @@index([targetDeviceId])
+}
+
+
+
+
+
+datasource db {
+  provider = "postgresql"
+}
