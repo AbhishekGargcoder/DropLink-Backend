@@ -13,9 +13,7 @@ const app = express();
 
 app.use(cors({
     origin: 
-        ["http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://192.168.29.240:5173"]
+        ["https://drop-link-frontend-m6a8ktk3r-imcoder22-1902s-projects.vercel.app"]
     ,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
