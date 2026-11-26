@@ -7,8 +7,8 @@ export const authenticateDevice: RequestHandler = async (req,res,next) => {
     try {
         // 1. Read Authorization header
         const authHeader = req.headers.authorization;
-        const bearerMatch = authHeader?.match(/^Bearer\s+(\S+)$/i);
-        if (!bearerMatch) {
+        const credential = authHeader?.match(/^Bearer\s+(\S+)$/i)?.[1];
+        if (!credential) {
             res.status(401).json({
                 success: false,
                 message: "Device credential is required"
@@ -16,7 +16,6 @@ export const authenticateDevice: RequestHandler = async (req,res,next) => {
             return;
         }
         // 2. Extract Bearer credential (original form mai hai) 
-        const credential = bearerMatch[1];
         // 3. Hash the received credential
         const credentialHash = createHash("sha256")
             .update(credential)

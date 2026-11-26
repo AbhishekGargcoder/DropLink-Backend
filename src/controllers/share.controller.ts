@@ -8,20 +8,18 @@ export const createShare: RequestHandler = async (req, res, next) => {
 
         const { receiverDeviceId, content, type } = req.body ?? {};
 
-        // // Validate receiver ID
-        // const uuidRegex =
-        //     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-        // if (
-        //     typeof receiverDeviceId !== "string" ||
-        //     !uuidRegex.test(receiverDeviceId)
-        // ) {
-        //     res.status(400).json({
-        //         success: false,
-        //         message: "Invalid receiver device ID"
-        //     });
-        //     return;
-        // }
+        const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (
+            typeof receiverDeviceId !== "string" ||
+            !uuidRegex.test(receiverDeviceId)
+        ) {
+            res.status(400).json({
+                success: false,
+                message: "Invalid receiver device ID"
+            });
+            return;
+        }
 
         // Validate content
         if (
