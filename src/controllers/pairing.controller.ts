@@ -28,7 +28,7 @@ export const confirmPairing: RequestHandler = async (req: Request, res: Response
         //        #1. register phone device into our DB.
         //        #2. add this phone id to the active pairingSession
         //        #3. do mapping {hostDeviceId, joinedDeviceId}
-        let { qrToken, deviceName, platform, existingCredential } = req.body ?? null;
+        let { qrToken, deviceName, platform, existingCredential } = req.body ?? {};
         if (typeof qrToken !== "string" ) {
             res.status(400).json({
                 success: false,

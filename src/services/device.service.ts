@@ -2,6 +2,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { DeviceType, DevicePlatform } from "../generated/prisma/enums.js";
 import prisma from "../config/prisma.js";
+import { HttpError } from "../middleware/HttpError.js";
 
 interface RegisterDeviceInput {
     deviceName: string;
@@ -10,17 +11,12 @@ interface RegisterDeviceInput {
 }
 
 export const registerDevice = async (data: RegisterDeviceInput) => {
-    console.log("SERVICE : register device hit");
-    // Generate a random secret-salt for this device
+    // Generate a random credential for this device.
     const credential = randomBytes(32).toString("base64url");
-    console.log("origianl credential: ", credential);
     // Hash the secret before storing it
     const credentialHash = createHash("sha256")
         .update(credential)
         .digest("hex");
-    console.log("data", data);
-    console.log("credential hased created : ",credentialHash);
-
     // Save device information in PostgreSQL
     const device = await prisma.device.create({
         data: {
@@ -108,7 +104,7 @@ export const getPairedDevices = async (
 // Remove the connection between two devices
 export const unpairDevice = async (
     currentDeviceId: string,
-    targetDeviceId: any
+    targetDeviceId: string
 ) => {
     const result = await prisma.devicePairing.deleteMany({
         where: {
@@ -120,7 +116,7 @@ export const unpairDevice = async (
     });
 
     if (result.count === 0) {
-        throw new Error("This device is not paired with you");
+        throw new HttpError(404, "This device is not paired with you");
     }
 
     return {

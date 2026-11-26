@@ -28,7 +28,6 @@ export const initializeSocket = (httpServer: any) => {
     io.use(async (socket, next) => {
         try {
             const credential = socket.handshake.auth?.credential;
-            console.log("credential ",credential);
             if (
                 typeof credential !== "string" ||
                 credential.length === 0
@@ -38,7 +37,6 @@ export const initializeSocket = (httpServer: any) => {
             const credentialHash = createHash("sha256")
                 .update(credential)
                 .digest("hex");
-            console.log("credential hased : ", credentialHash);
             const device = await prisma.device.findUnique({
                 where: {
                     credentialHash
@@ -50,7 +48,6 @@ export const initializeSocket = (httpServer: any) => {
                 }
             });
             if (!device) {
-                console.log("Invalid device credential");
                 return next(new Error("Invalid device credential"));
             }
             // Attach authenticated device information.

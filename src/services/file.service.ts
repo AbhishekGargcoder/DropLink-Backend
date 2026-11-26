@@ -3,6 +3,7 @@ import { mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import prisma from "../config/prisma.js";
 import { getIoInstance } from "../socket/socket.js";
+import { HttpError } from "../middleware/HttpError.js";
 
 const UPLOAD_ROOT = path.resolve(process.cwd(), "uploads");
 
@@ -30,7 +31,7 @@ export const createSharedFile = async (data: {
     storagePath: string;
 }) => {
     if (data.senderDeviceId === data.receiverDeviceId) {
-        throw new Error("Cannot share a file with yourself");
+        throw new HttpError(400, "Cannot share a file with yourself");
     }
 
     const pairing = await prisma.devicePairing.findFirst({
@@ -49,7 +50,7 @@ export const createSharedFile = async (data: {
     });
 
     if (!pairing) {
-        throw new Error("These devices are not paired");
+        throw new HttpError(403, "These devices are not paired");
     }
 
     const sharedFile = await prisma.sharedFile.create({
@@ -126,7 +127,7 @@ export const getAuthorizedSharedFile = async (
     });
 
     if (!file) {
-        throw new Error("File not found or you are not authorized to access it");
+        throw new HttpError(404, "File not found or you are not authorized to access it");
     }
 
     return file;

@@ -6,7 +6,7 @@ export const createShare: RequestHandler = async (req, res, next) => {
         // The sender is always the authenticated device.
         const senderDeviceId = res.locals.device.id;
 
-        const { receiverDeviceId, content, type } = req.body;
+        const { receiverDeviceId, content, type } = req.body ?? {};
 
         // // Validate receiver ID
         // const uuidRegex =

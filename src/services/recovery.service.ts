@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import prisma from "../config/prisma.js";
+import { HttpError } from "../middleware/HttpError.js";
 
 const RECOVERY_EXPIRY_MS = 2 * 60 * 1000;
 
@@ -37,11 +38,10 @@ export const createDeviceRecoverySession = async (
     ]);
 
     if (!hostDevice || hostDevice.deviceType !== "DESKTOP") {
-        throw new Error("Invalid host device");
+        throw new HttpError(404, "Invalid host device");
     }
-
     if (!targetDevice || targetDevice.deviceType !== "MOBILE") {
-        throw new Error("Invalid target phone");
+        throw new HttpError(404, "Invalid target phone");
     }
 
     // Verify that this phone is paired with this laptop before.
@@ -53,7 +53,7 @@ export const createDeviceRecoverySession = async (
     });
 
     if (!pairing) {
-        throw new Error("This phone is not paired with your laptop");
+        throw new HttpError(409, "This phone is not paired with your laptop");
     }
 
     // devicePairing exists, so we can create a recovery session for this phone.
@@ -121,21 +121,21 @@ export const confirmDeviceRecovery = async (
         });
 
         if (!session) {
-            throw new Error("Invalid recovery QR code");
+            throw new HttpError(400, "Invalid recovery QR code");
         }
 
         if (session.expiresAt <= now) {
-            throw new Error("Recovery session has expired");
+            throw new HttpError(410, "Recovery session has expired");
         }
         if (session.completedAt) {
-            throw new Error("Recovery session has already been used");
+            throw new HttpError(409, "Recovery session has already been used");
         }
 
         if (
             session.hostDevice.deviceType !== "DESKTOP" ||
             session.targetDevice.deviceType !== "MOBILE"
         ) {
-            throw new Error("Invalid recovery devices");
+            throw new HttpError(409, "Invalid recovery devices");
         }
 
         // Confirm that the original pairing still exists.
@@ -147,7 +147,7 @@ export const confirmDeviceRecovery = async (
         });
 
         if (!pairing) {
-            throw new Error("Phone is no longer paired with this laptop");
+            throw new HttpError(409, "Phone is no longer paired with this laptop");
         }
 
         // CREATE A NEW CREDENTIAL AND HAND OVER TO THE PHONE WHO LOST ITS CREDENTIAL
@@ -168,7 +168,7 @@ export const confirmDeviceRecovery = async (
         });
 
         if (claimedSession.count !== 1) {
-            throw new Error("Recovery session is no longer available");
+            throw new HttpError(409, "Recovery session is no longer available");
         }
 
         // Replace the credential on the EXISTING phone IN DB.

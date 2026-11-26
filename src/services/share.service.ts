@@ -2,6 +2,7 @@
 import prisma  from "../config/prisma.js";
 import { SharedTextType } from "../generated/prisma/enums.js";
 import { getIoInstance } from "../socket/socket.js";
+import { HttpError } from "../middleware/HttpError.js";
 
 interface ShareTextInput {
     senderDeviceId: string;
@@ -21,7 +22,7 @@ export const shareText = async (data: ShareTextInput) => {
 
     // 1. Prevent sending content to yourself
     if (senderDeviceId === receiverDeviceId) {
-        throw new Error("Cannot share content with yourself");
+        throw new HttpError(400, "Cannot share content with yourself");
     }
 
     // 2. Find the pairing relationship
@@ -42,7 +43,7 @@ export const shareText = async (data: ShareTextInput) => {
 
     // 3. Verify that both devices are paired
     if (!pairing) {
-        throw new Error("These devices are not paired");
+        throw new HttpError(403, "These devices are not paired");
     }
 
     // 4. Save the shared content to DB
@@ -85,7 +86,6 @@ export const shareText = async (data: ShareTextInput) => {
                 senderDevice: sharedText.senderDevice,
                 receiverDevice: sharedText.receiverDevice
             });
-        console.log(`Emitting share:new to device:${receiverDeviceId} room`);
     } catch (error) {
         console.error("Share notification failed:", error);
     }
@@ -156,7 +156,7 @@ export const markShareAsRead = async (
             }
         });
         if (!existingShare) {
-            throw new Error(
+            throw new HttpError(404,
                 "Share not found or you are not its receiver"
             );
         }

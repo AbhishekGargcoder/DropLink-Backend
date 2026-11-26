@@ -35,12 +35,6 @@ fileRouter.post(
     "/upload",
     authenticateDevice,
     upload.single("file"),
-    (req, res, next) => {
-        console.log("AFTER MULTER");
-        console.log("req.file:", req.file);
-        console.log("req.body:", req.body);
-        next();
-  },
     uploadFile
 );
 fileRouter.get("/", authenticateDevice, listFiles);

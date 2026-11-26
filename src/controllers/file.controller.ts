@@ -22,7 +22,7 @@ export const uploadFile: RequestHandler = async (req, res, next) => {
     const uploadedFile = req.file;
     try {
         const senderDeviceId = res.locals.device.id; // laptop ya phone ka device id
-        const { receiverDeviceId } = req.body; // laptop ya phone ka device id
+        const { receiverDeviceId } = req.body ?? {}; // laptop ya phone ka device id
 
         if (
             typeof receiverDeviceId !== "string" ||

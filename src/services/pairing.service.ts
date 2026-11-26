@@ -1,9 +1,8 @@
 import { randomBytes, createHash } from "node:crypto";
 import prisma from "../config/prisma.js";
+import { HttpError } from "../middleware/HttpError.js";
 
 export const createPairingSession = async (hostDeviceId: string) => {
-    // steps : 1). generate QR-token & its expiry and 2). save to db
-    console.log("SERVICE :create Pairing Session route hit ");
     // 1. Generate a secure random token
     const qrtoken = randomBytes(32).toString("base64url");
     // 2. Hash the token before storing it
@@ -12,7 +11,6 @@ export const createPairingSession = async (hostDeviceId: string) => {
         .digest("hex");
     // 3. Pairing session expires after 2 minutes
     const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
-    console.log("QR-token: ", qrtoken);
     // 4. Save the session in PostgreSQL
     const session = await prisma.pairingSession.create({
         data: {
@@ -45,7 +43,6 @@ export const confirmPairingSession = async (data: ConfirmPairingInput) => {
     const hashedQRToken = createHash("sha256")
         .update(data.qrToken)
         .digest("hex");
-    console.log("tokenHash", hashedQRToken);
 
     // 2. Find the pairing session
     const session = await prisma.pairingSession.findUnique({
@@ -53,14 +50,14 @@ export const confirmPairingSession = async (data: ConfirmPairingInput) => {
     });
 
     if (!session) {
-        throw new Error("Invalid pairing QR-token");
+        throw new HttpError(400, "Invalid pairing QR-token");
     }
     const now = new Date();
     if (session.expiresAt <= now) {
-        throw new Error("Pairing session has expired");
+        throw new HttpError(410, "Pairing session has expired");
     }
     if (session.completedAt) {
-        throw new Error("Pairing session has already been used");
+        throw new HttpError(409, "Pairing session has already been used");
     }
 
     // 3. Check if phone already has a valid device identity
@@ -77,7 +74,6 @@ export const confirmPairingSession = async (data: ConfirmPairingInput) => {
 
     if (existingDevice) {
         // RE-PAIRING: Reuse existing device, just create new pairing link
-        console.log("Re-pairing existing device:", existingDevice.id);
         await prisma.$transaction(async (tx) => {
             // Claim the session
             const claimedSession = await tx.pairingSession.updateMany({
@@ -92,7 +88,7 @@ export const confirmPairingSession = async (data: ConfirmPairingInput) => {
                 }
             });
             if (claimedSession.count !== 1) {
-                throw new Error("Pairing session is no longer available");
+                throw new HttpError(409, "Pairing session is no longer available");
             }
             // Remove any old pairing between these two devices (in case they were paired before)
             await tx.devicePairing.deleteMany({
@@ -160,7 +156,7 @@ export const confirmPairingSession = async (data: ConfirmPairingInput) => {
             }
         });
         if (claimedSession.count !== 1) {
-            throw new Error("Pairing session is no longer available");
+            throw new HttpError(409, "Pairing session is no longer available");
         }
         await tx.devicePairing.create({
             data: {
@@ -201,7 +197,7 @@ export const getPairingStatus = async (sessionId: any, hostDeviceId: string) => 
     });
 
     if (!currSession) {
-        throw new Error("Pairing session not found");
+        throw new HttpError(404, "Pairing session not found");
     }
     // Determine the current status
     if (currSession.completedAt) {
